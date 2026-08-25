@@ -1,0 +1,11 @@
+import { LegalPage } from "@/components/legal/legal-page";
+
+export const metadata = { title: "Privacy" };
+export default function PrivacyPage() {
+  return <LegalPage eyebrow="Privacy notice" title="Private by default." summary="A plain-language overview for the MortgageMates pilot. Formal legal review is still required before a commercial launch." sections={[
+    { title: "What we collect", body: <><p>Account details, profile ranges, home and location preferences, living and ownership expectations, matching decisions, support reports, and audit events.</p><p>The document vault may contain highly sensitive identity, income, banking, deposit, and commitment records. We do not use these documents to calculate affordability or provide mortgage advice.</p></> },
+    { title: "Who can see what", body: <><p>A potential co-buyer sees a structured compatibility summary and, once matched, a document-readiness percentage. They cannot access your uploaded files, exact account information, email, or phone before all introduction gates are complete.</p><p>Authorised pilot administrators can access records needed for review, safety, and support. A broker or solicitor receives documents only after you record explicit consent for that named professional.</p></> },
+    { title: "Storage and security", body: <><p>Member data is stored in Supabase with row-level access controls. Documents are held in a private Storage bucket with per-user paths, file-type restrictions, and short-lived signed links.</p><p>No online service can promise absolute security. Report suspected access immediately to hello@mortgagemates.ie.</p></> },
+    { title: "Retention and your choices", body: <><p>You can remove your own uploaded documents and revoke an active professional-sharing request. Matching, consent, safety, and audit records may be retained where needed to operate the pilot, resolve complaints, or meet legal obligations.</p><p>Before accepting real users beyond a controlled pilot, MortgageMates must finalise controller identity, lawful bases, retention periods, processor terms, international-transfer wording, data-subject request handling, and a data protection impact assessment.</p></> },
+  ]} />;
+}
