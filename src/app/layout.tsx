@@ -8,7 +8,7 @@ const manrope = Manrope({ variable: "--font-manrope", subsets: ["latin"], displa
 const newsreader = Newsreader({ variable: "--font-newsreader", subsets: ["latin"], display: "swap" });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "https://mortgagemates.vercel.app"),
   title: { default: "MortgageMates — A careful path to co-buying", template: "%s · MortgageMates" },
   description: "Meet one financially aligned co-buyer, prepare your documents, and move forward with independent professionals.",
   robots: { index: true, follow: true },

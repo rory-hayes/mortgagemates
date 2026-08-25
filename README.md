@@ -26,7 +26,7 @@ vercel env pull .env.local --environment development
 pnpm dev
 ```
 
-Open `http://localhost:3000`. The public product tour is at `/preview`.
+Open the development URL printed by Next.js. The public product tour is at `/preview`.
 
 ## Verification
 
@@ -47,13 +47,12 @@ The linked project is `MortgageMates` (`idbsdqiukcjmpugsqkfw`). The schema is in
 
 The `buyer-documents` bucket is private. Object paths begin with the authenticated user ID, and another buyer never receives a storage policy permitting access. Pair readiness is returned through a restricted database function that exposes counts and status only.
 
-## Operational setup still required
+## Operational setup before a paid pilot
 
 Before a paid public pilot:
 
-1. Add the production and preview auth callback URLs in Supabase Auth URL Configuration.
-2. Add `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` in Vercel.
-3. Register the Stripe webhook endpoint at `/api/stripe/webhook` for Checkout completion and Identity verification events.
-4. Sign up the operator account, then promote that profile to `admin` directly in Supabase.
-5. Complete legal review of privacy, terms, payment/refund wording, complaints, data retention, DPIA, and professional-partner arrangements.
-6. Complete accessibility and security testing with realistic but non-production documents before inviting pilot users.
+1. Add `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` in Vercel.
+2. Register the Stripe webhook endpoint at `/api/stripe/webhook` for Checkout completion and Identity verification events.
+3. Sign up the operator account, then promote that profile to `admin` directly in Supabase.
+4. Complete legal review of privacy, terms, payment/refund wording, complaints, data retention, DPIA, and professional-partner arrangements.
+5. Complete accessibility and security testing with realistic but non-production documents before inviting pilot users.
