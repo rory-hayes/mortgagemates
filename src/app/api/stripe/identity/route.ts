@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { publicRequestOrigin } from "@/lib/site-origin";
+import { introductionGateMode } from "@/lib/introduction-gate-mode";
+import { completeMockIntroductionGate } from "@/lib/mock-introduction-gate";
 import { createStripe } from "@/lib/stripe";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -32,6 +34,14 @@ export async function POST(request: Request) {
     const status = side === "a" ? introduction.identity_a_status : introduction.identity_b_status;
     const storedSessionId = side === "a" ? introduction.identity_session_a_id : introduction.identity_session_b_id;
     if (status === "verified") return NextResponse.json({ error: "Identity verification is already complete." }, { status: 409 });
+
+    if (introductionGateMode() === "mock") {
+      await completeMockIntroductionGate({ gate: "identity", matchId: match.id, userId: user.id });
+      return NextResponse.json({
+        mode: "mock",
+        url: `${publicRequestOrigin(request)}/portal?mock=identity-complete`,
+      });
+    }
 
     const stripe = createStripe();
     if (storedSessionId) {

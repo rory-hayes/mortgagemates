@@ -13,8 +13,15 @@ const reviewWorkflow = readFileSync(
   new URL("../../supabase/migrations/20260827103000_review_workflow_lockdown.sql", import.meta.url),
   "utf8",
 );
+const mockGateMigration = readFileSync(
+  new URL("../../supabase/migrations/20260827120000_mock_introduction_gates.sql", import.meta.url),
+  "utf8",
+);
 const rootLayout = readFileSync(new URL("../app/layout.tsx", import.meta.url), "utf8");
 const checkoutRoute = readFileSync(new URL("../app/api/stripe/checkout/route.ts", import.meta.url), "utf8");
+const identityRoute = readFileSync(new URL("../app/api/stripe/identity/route.ts", import.meta.url), "utf8");
+const gateMode = readFileSync(new URL("./introduction-gate-mode.ts", import.meta.url), "utf8");
+const gateComponent = readFileSync(new URL("../components/portal/introduction-gates.tsx", import.meta.url), "utf8");
 const adminWorkspace = readFileSync(new URL("../components/admin/match-workspace.tsx", import.meta.url), "utf8");
 const playwrightConfig = readFileSync(new URL("../../playwright.config.ts", import.meta.url), "utf8");
 const publicE2e = readFileSync(new URL("../../e2e/public-production.spec.ts", import.meta.url), "utf8");
@@ -75,6 +82,26 @@ describe("production security invariants", () => {
     expect(checkoutRoute).toContain('wallet_options: { link: { display: "never" } }');
     expect(checkoutRoute).toContain('const CHECKOUT_CONFIG_VERSION = "v2-card-no-link"');
     expect(checkoutRoute).toContain("mortgagemates:checkout:${CHECKOUT_CONFIG_VERSION}");
+  });
+
+  it("keeps mock gates server-controlled, explicit, and separate from Stripe evidence", () => {
+    expect(gateMode).toContain('MORTGAGEMATES_INTRODUCTION_GATE_MODE');
+    expect(gateMode).not.toContain("NEXT_PUBLIC_");
+    expect(gateMode).toContain('value === "mock" ? "mock" : "stripe"');
+    expect(mockGateMigration).toContain("Service role required");
+    expect(mockGateMigration).toContain("'mock_gate_completed'");
+    expect(mockGateMigration).toContain("'provider', 'none'");
+    expect(mockGateMigration).not.toContain("stripe_webhook_events");
+    expect(mockGateMigration).toContain(
+      "revoke all on function public.complete_mock_introduction_gate(uuid, uuid, text, text) from public, anon, authenticated;",
+    );
+    expect(mockGateMigration).toContain(
+      "grant execute on function public.complete_mock_introduction_gate(uuid, uuid, text, text) to service_role;",
+    );
+    expect(checkoutRoute).toContain('introductionGateMode() === "mock"');
+    expect(identityRoute).toContain('introductionGateMode() === "mock"');
+    expect(gateComponent).toContain("Simulation only — no Stripe transaction");
+    expect(gateComponent).toContain("no identity verification occurs, and no money is charged");
   });
 
   it("requires admins to lock document bytes before accepting an upload", () => {

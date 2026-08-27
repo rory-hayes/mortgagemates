@@ -15,10 +15,11 @@ Ireland-first co-buyer matching and preparation MVP for two unrelated owner-occu
 - Admin queues for profile and document review, matching, safety reports, and professional handoffs
 - Explicit versioned terms, privacy, and risk consent before profile submission
 - Idempotent Stripe sessions with an atomic, retryable webhook event ledger
+- An explicit server-only mock gate mode for protected MVP testing; the portal labels it clearly and records separate mock audit events
 
 ## Evidence boundaries
 
-The sample portal uses fictional data. A green build proves the code compiles; it does not prove a payment, identity check, broker handoff, solicitor engagement, mortgage approval, or real customer demand. Stripe routes require valid environment-specific credentials and a matching signed webhook destination.
+The sample portal uses fictional data. A green build proves the code compiles; it does not prove a payment, identity check, broker handoff, solicitor engagement, mortgage approval, or real customer demand. Stripe routes require valid environment-specific credentials and a matching signed webhook destination. Setting the server-only `MORTGAGEMATES_INTRODUCTION_GATE_MODE=mock` exercises the unlock flow without Stripe; it never means that an identity was verified or a payment was collected.
 
 ## Hosted verification only
 

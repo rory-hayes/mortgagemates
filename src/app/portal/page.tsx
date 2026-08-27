@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { MemberDashboard } from "@/components/portal/member-dashboard";
+import { introductionGateMode } from "@/lib/introduction-gate-mode";
 import { createClient } from "@/lib/supabase/server";
 import { calculateReadiness } from "@/lib/readiness";
 
@@ -27,5 +28,5 @@ export default async function PortalPage() {
   const side = match?.user_a === user.id ? "a" : "b";
   const gates = introduction ? { identity: side === "a" ? introduction.identity_a_status : introduction.identity_b_status, payment: side === "a" ? introduction.payment_a_status : introduction.payment_b_status } : null;
   const contact = Array.isArray(unlockedContact) ? unlockedContact[0] ?? null : null;
-  return <MemberDashboard profile={profile} documentStats={readiness} match={match as { id: string; status: string; compatibility: Record<string, unknown>; user_a: string; user_b: string; expires_at: string } | null} decision={existingDecision?.decision ?? null} gates={gates} contact={contact} />;
+  return <MemberDashboard profile={profile} documentStats={readiness} match={match as { id: string; status: string; compatibility: Record<string, unknown>; user_a: string; user_b: string; expires_at: string } | null} decision={existingDecision?.decision ?? null} gates={gates} gateMode={introductionGateMode()} contact={contact} />;
 }

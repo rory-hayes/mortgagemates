@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { publicRequestOrigin } from "@/lib/site-origin";
+import { introductionGateMode } from "@/lib/introduction-gate-mode";
+import { completeMockIntroductionGate } from "@/lib/mock-introduction-gate";
 import { createStripe } from "@/lib/stripe";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -34,6 +36,14 @@ export async function POST(request: Request) {
     const status = side === "a" ? introduction.payment_a_status : introduction.payment_b_status;
     const storedSessionId = side === "a" ? introduction.checkout_session_a_id : introduction.checkout_session_b_id;
     if (status === "paid") return NextResponse.json({ error: "This introduction payment is already complete." }, { status: 409 });
+
+    if (introductionGateMode() === "mock") {
+      await completeMockIntroductionGate({ gate: "checkout", matchId: match.id, userId: user.id });
+      return NextResponse.json({
+        mode: "mock",
+        url: `${publicRequestOrigin(request)}/portal?mock=payment-complete`,
+      });
+    }
 
     const stripe = createStripe();
     if (storedSessionId) {
