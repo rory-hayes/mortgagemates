@@ -102,6 +102,8 @@ describe("production security invariants", () => {
     expect(identityRoute).toContain('introductionGateMode() === "mock"');
     expect(gateComponent).toContain("Simulation only — no Stripe transaction");
     expect(gateComponent).toContain("no identity verification occurs, and no money is charged");
+    expect(rootLayout).toContain("MVP demo — identity and €49 payment steps are simulated");
+    expect(rootLayout).toContain("index: false, follow: false");
   });
 
   it("requires admins to lock document bytes before accepting an upload", () => {
