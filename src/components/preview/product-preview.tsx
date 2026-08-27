@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { AlertTriangleIcon, ArrowRightIcon, BanknoteIcon, BriefcaseBusinessIcon, CheckCircle2Icon, CheckIcon, Clock3Icon, DownloadIcon, FileCheck2Icon, FileClockIcon, FileKey2Icon, FileTextIcon, FolderLockIcon, HandshakeIcon, HomeIcon, IdCardIcon, LandmarkIcon, LockKeyholeIcon, MapPinIcon, NotebookTabsIcon, SearchIcon, ShieldCheckIcon, UploadCloudIcon, UserCheckIcon, UsersIcon, WrenchIcon } from "lucide-react";
 import { PortalHeader } from "@/components/portal/portal-header";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -60,5 +61,7 @@ function AdminWorkspace() {
 export function ProductPreview({ initialView = "dashboard" }: { initialView?: string }) {
   const allowed = ["dashboard", "documents", "alignment", "admin"];
   const [view, setView] = useState(allowed.includes(initialView) ? initialView : "dashboard");
-  return <div className="min-h-screen"><PreviewBanner /><PortalHeader firstName="Rory" preview /><Tabs value={view} onValueChange={setView}><div className="border-b bg-card"><div className="content-grid overflow-x-auto py-2"><TabsList><TabsTrigger value="dashboard">Dashboard</TabsTrigger><TabsTrigger value="documents">Documents</TabsTrigger><TabsTrigger value="alignment">Alignment</TabsTrigger><TabsTrigger value="admin">Admin</TabsTrigger></TabsList></div></div><TabsContent value="dashboard"><MatchDashboard /></TabsContent><TabsContent value="documents"><DocumentTracker /></TabsContent><TabsContent value="alignment"><AlignmentWorkbook /></TabsContent><TabsContent value="admin"><AdminWorkspace /></TabsContent></Tabs></div>;
+  const router = useRouter();
+  function changeView(next: string) { setView(next); router.replace(`/preview?view=${next}`, { scroll: false }); }
+  return <div className="min-h-screen"><PreviewBanner /><PortalHeader firstName="Rory" preview /><Tabs value={view} onValueChange={changeView}><div className="border-b bg-card"><div className="content-grid overflow-x-auto py-2"><TabsList><TabsTrigger value="dashboard">Dashboard</TabsTrigger><TabsTrigger value="documents">Documents</TabsTrigger><TabsTrigger value="alignment">Alignment</TabsTrigger><TabsTrigger value="admin">Admin</TabsTrigger></TabsList></div></div><TabsContent value="dashboard"><MatchDashboard /></TabsContent><TabsContent value="documents"><DocumentTracker /></TabsContent><TabsContent value="alignment"><AlignmentWorkbook /></TabsContent><TabsContent value="admin"><AdminWorkspace /></TabsContent></Tabs></div>;
 }

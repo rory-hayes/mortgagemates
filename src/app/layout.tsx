@@ -2,13 +2,14 @@ import type { Metadata } from "next";
 import { Manrope, Newsreader } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { normalizePublicSiteOrigin } from "@/lib/public-origin";
 import "./globals.css";
 
 const manrope = Manrope({ variable: "--font-manrope", subsets: ["latin"], display: "swap" });
 const newsreader = Newsreader({ variable: "--font-newsreader", subsets: ["latin"], display: "swap" });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "https://mortgagemates.vercel.app"),
+  metadataBase: new URL(normalizePublicSiteOrigin(process.env.NEXT_PUBLIC_SITE_URL)),
   title: { default: "MortgageMates — A careful path to co-buying", template: "%s · MortgageMates" },
   description: "Meet one financially aligned co-buyer, prepare your documents, and move forward with independent professionals.",
   robots: { index: true, follow: true },

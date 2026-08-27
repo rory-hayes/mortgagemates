@@ -1,29 +1,42 @@
+import Stripe from "stripe";
 import { NextResponse } from "next/server";
 import { createStripe } from "@/lib/stripe";
 import { createAdminClient } from "@/lib/supabase/admin";
+
+const supportedEvents = new Set(["checkout.session.completed", "identity.verification_session.verified"]);
 
 export async function POST(request: Request) {
   const signature = request.headers.get("stripe-signature");
   const secret = process.env.STRIPE_WEBHOOK_SECRET;
   if (!signature || !secret) return NextResponse.json({ error: "Webhook is not configured." }, { status: 400 });
+
+  let event: Stripe.Event;
   try {
-    const event = createStripe().webhooks.constructEvent(await request.text(), signature, secret);
-    const object = event.data.object as { metadata?: Record<string, string> };
+    event = createStripe().webhooks.constructEvent(await request.text(), signature, secret);
+  } catch {
+    return NextResponse.json({ error: "Invalid webhook signature." }, { status: 400 });
+  }
+  if (!supportedEvents.has(event.type)) return NextResponse.json({ received: true, ignored: true });
+
+  try {
+    const object = event.data.object as Stripe.Checkout.Session | Stripe.Identity.VerificationSession;
     const matchId = object.metadata?.match_id;
     const userId = object.metadata?.user_id;
-    if (matchId && userId && ["checkout.session.completed", "identity.verification_session.verified"].includes(event.type)) {
-      const admin = createAdminClient();
-      const { data: match } = await admin.from("matches").select("user_a, user_b").eq("id", matchId).single();
-      if (match && [match.user_a, match.user_b].includes(userId)) {
-        const side = match.user_a === userId ? "a" : "b";
-        if (event.type === "checkout.session.completed") await admin.from("introductions").update({ [`payment_${side}_status`]: "paid" }).eq("match_id", matchId);
-        if (event.type === "identity.verification_session.verified") {
-          await Promise.all([admin.from("introductions").update({ [`identity_${side}_status`]: "verified" }).eq("match_id", matchId), admin.from("profiles").update({ identity_status: "verified" }).eq("id", userId)]);
-        }
-      }
+    if (!matchId || !userId) throw new Error("Stripe metadata is incomplete.");
+    if (event.type === "checkout.session.completed" && (object as Stripe.Checkout.Session).payment_status !== "paid") {
+      throw new Error("Checkout completed without a paid status.");
     }
+
+    const { error } = await createAdminClient().rpc("apply_stripe_event", {
+      p_event_id: event.id,
+      p_event_type: event.type,
+      p_object_id: object.id,
+      p_match_id: matchId,
+      p_user_id: userId,
+    });
+    if (error) throw new Error(error.message);
     return NextResponse.json({ received: true });
   } catch {
-    return NextResponse.json({ error: "Invalid webhook." }, { status: 400 });
+    return NextResponse.json({ error: "Webhook processing failed and will be retried." }, { status: 500 });
   }
 }

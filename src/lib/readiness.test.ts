@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { calculateReadiness, latestDocumentsByRequirement } from "@/lib/readiness";
+import { calculateReadiness, effectiveDocumentStatus, latestDocumentsByRequirement } from "@/lib/readiness";
 
 describe("document readiness", () => {
   it("counts only required accepted documents", () => {
@@ -21,5 +21,21 @@ describe("document readiness", () => {
 
   it("returns zero percent for an empty checklist", () => {
     expect(calculateReadiness([], [])).toEqual({ accepted: 0, uploaded: 0, required: 0, percent: 0 });
+  });
+
+  it("does not count an expired accepted document", () => {
+    const document = {
+      requirement_id: "bank",
+      status: "accepted",
+      expiry_date: "2026-08-25",
+      created_at: "2026-08-20T10:00:00Z",
+    };
+    expect(calculateReadiness(["bank"], [document], new Date("2026-08-26T12:00:00Z"))).toEqual({
+      accepted: 0,
+      uploaded: 1,
+      required: 1,
+      percent: 0,
+    });
+    expect(effectiveDocumentStatus(document, new Date("2026-08-26T12:00:00Z"))).toBe("expired");
   });
 });

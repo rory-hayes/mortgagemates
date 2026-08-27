@@ -5,7 +5,7 @@ import Link from "next/link";
 import { ArrowLeftIcon, ArrowRightIcon, CheckCircle2Icon, CircleAlertIcon } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader } from "@/components/ui/card";
 import { Field, FieldDescription, FieldGroup, FieldTitle } from "@/components/ui/field";
 import { Progress } from "@/components/ui/progress";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -27,7 +27,7 @@ export function EligibilityCheck() {
 
   return (
     <Card className="mx-auto max-w-3xl">
-      <CardHeader><p className="eyebrow">Two-minute check</p><CardTitle className="text-4xl">Is this pilot right for you?</CardTitle><CardDescription>These questions establish fit; they are not a mortgage or affordability assessment.</CardDescription><Progress value={(answered / questions.length) * 100} /></CardHeader>
+      <CardHeader><p className="eyebrow">Two-minute check</p><h1 className="font-heading text-4xl font-medium tracking-tight text-primary">Is this pilot right for you?</h1><CardDescription>These questions establish fit; they are not a mortgage or affordability assessment.</CardDescription><Progress value={(answered / questions.length) * 100} /></CardHeader>
       <CardContent>
         <FieldGroup>
           {questions.map(([key, title, description], index) => <Field key={key} orientation="responsive"><div className="flex flex-1 gap-3"><span className="font-heading text-2xl text-muted-foreground">{index + 1}</span><div><FieldTitle id={`${key}-label`}>{title}</FieldTitle><FieldDescription>{description}</FieldDescription></div></div><ToggleGroup aria-labelledby={`${key}-label`} value={answers[key] ? [answers[key]] : []} onValueChange={(value) => setAnswers((current) => ({ ...current, [key]: value[0] ?? "" }))}><ToggleGroupItem value="yes">Yes</ToggleGroupItem><ToggleGroupItem value="no">No</ToggleGroupItem></ToggleGroup></Field>)}

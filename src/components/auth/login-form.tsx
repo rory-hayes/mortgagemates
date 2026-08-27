@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { ArrowRightIcon, CheckCircle2Icon, MailIcon } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -9,6 +10,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
+import { normalizePublicSiteOrigin } from "@/lib/public-origin";
 
 export function LoginForm() {
   const [email, setEmail] = useState("");
@@ -22,7 +24,15 @@ export function LoginForm() {
     setPending(true);
     setError(null);
     const supabase = createClient();
-    const callback = `${window.location.origin}/auth/callback?next=/portal`;
+    let callback: string;
+    try {
+      const siteOrigin = normalizePublicSiteOrigin(window.location.origin);
+      callback = new URL("/auth/callback", siteOrigin).toString();
+    } catch {
+      setPending(false);
+      setError("Secure sign-in is not configured for this deployment.");
+      return;
+    }
     const { error: authError } = await supabase.auth.signInWithOtp({
       email,
       options: { emailRedirectTo: callback, data: { first_name: firstName.trim() || undefined } },
@@ -46,7 +56,7 @@ export function LoginForm() {
             <Field data-invalid={Boolean(error)}><FieldLabel htmlFor="email">Email address</FieldLabel><Input id="email" type="email" autoComplete="email" required value={email} onChange={(event) => setEmail(event.target.value)} aria-invalid={Boolean(error)} placeholder="you@example.ie" />{error ? <FieldError>{error}</FieldError> : null}</Field>
           </FieldGroup>
         </CardContent>
-        <CardFooter className="flex-col items-stretch gap-3"><Button type="submit" size="lg" disabled={pending}>{pending ? <Spinner data-icon="inline-start" /> : <MailIcon data-icon="inline-start" />}{pending ? "Sending secure link…" : "Email me a secure link"}<ArrowRightIcon data-icon="inline-end" /></Button><p className="text-center text-xs text-muted-foreground">By continuing, you agree to the pilot terms and privacy notice.</p></CardFooter>
+        <CardFooter className="flex-col items-stretch gap-3"><Button type="submit" size="lg" disabled={pending}>{pending ? <Spinner data-icon="inline-start" /> : <MailIcon data-icon="inline-start" />}{pending ? "Sending secure link…" : "Email me a secure link"}<ArrowRightIcon data-icon="inline-end" /></Button><p className="text-center text-xs text-muted-foreground">Sending a link does not submit your profile. You will explicitly accept the <Link className="underline" href="/terms">terms</Link>, <Link className="underline" href="/privacy">privacy notice</Link>, and risk acknowledgement before review.</p></CardFooter>
       </Card>
     </form>
   );

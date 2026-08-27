@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
 
-export function IntroductionGates({ matchId }: { matchId: string }) {
+export function IntroductionGates({ matchId, identityStatus, paymentStatus }: { matchId: string; identityStatus: string; paymentStatus: string }) {
   const [pending, setPending] = useState<"identity" | "checkout" | null>(null);
   async function start(kind: "identity" | "checkout") {
     setPending(kind);
@@ -18,5 +18,7 @@ export function IntroductionGates({ matchId }: { matchId: string }) {
     if (!response.ok || !payload.url) toast.error(payload.error ?? "This gate is not configured yet.");
     else window.location.assign(payload.url);
   }
-  return <Card><CardHeader><CardTitle>Both people opted in</CardTitle><CardDescription>Complete the two individual gates before contact details unlock.</CardDescription></CardHeader><CardContent className="grid gap-4 sm:grid-cols-2"><Button variant="outline" disabled={pending !== null} onClick={() => start("identity")}>{pending === "identity" ? <Spinner data-icon="inline-start" /> : <IdCardIcon data-icon="inline-start" />}Verify identity</Button><Button disabled={pending !== null} onClick={() => start("checkout")}>{pending === "checkout" ? <Spinner data-icon="inline-start" /> : <CreditCardIcon data-icon="inline-start" />}Pay €49</Button><Alert className="sm:col-span-2"><LockKeyholeIcon /><AlertTitle>Individual and private</AlertTitle><AlertDescription>Neither person sees the other’s identity document or payment details—only whether each gate is complete.</AlertDescription></Alert></CardContent></Card>;
+  const identityComplete = identityStatus === "verified";
+  const paymentComplete = paymentStatus === "paid";
+  return <Card><CardHeader><CardTitle>Both people opted in</CardTitle><CardDescription>Complete the two individual gates before contact details unlock.</CardDescription></CardHeader><CardContent className="grid gap-4 sm:grid-cols-2"><Button variant="outline" disabled={pending !== null || identityComplete} onClick={() => start("identity")}>{pending === "identity" ? <Spinner data-icon="inline-start" /> : <IdCardIcon data-icon="inline-start" />}{identityComplete ? "Identity verified" : "Verify identity"}</Button><Button disabled={pending !== null || paymentComplete} onClick={() => start("checkout")}>{pending === "checkout" ? <Spinner data-icon="inline-start" /> : <CreditCardIcon data-icon="inline-start" />}{paymentComplete ? "Payment complete" : "Pay €49"}</Button><Alert className="sm:col-span-2"><LockKeyholeIcon /><AlertTitle>Individual and private</AlertTitle><AlertDescription>Neither person sees the other’s identity document or payment details—only whether each gate is complete.</AlertDescription></Alert></CardContent></Card>;
 }
