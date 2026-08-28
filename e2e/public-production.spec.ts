@@ -32,6 +32,44 @@ test("sample portal tabs stay addressable", async ({ page }) => {
   await expect(page).toHaveURL(/\/preview\?view=alignment$/);
 });
 
+test("investor trial is public and its hard-gate hold is live", async ({ page, request }) => {
+  await page.goto("/investor-trial");
+  await expect(
+    page.getByRole("heading", {
+      level: 1,
+      name: /See how one considered match is made/i,
+    }),
+  ).toBeVisible();
+  await expect(page.getByRole("button", { name: "Run live AI match" })).toBeVisible();
+  await expect(page.getByRole("combobox").nth(2)).toContainText(
+    "€50,000–€74,999",
+  );
+
+  const response = await request.post("/api/investor-trial/match", {
+    data: {
+      targetLocation: "Blackrock",
+      propertyType: "House",
+      depositRange: "€35,000–€49,999",
+      borrowingRange: "€220,000–€259,999",
+      monthlyRange: "€1,200–€1,399",
+      purchaseTimeline: "3–6 months",
+      ownershipHorizon: "10+ years",
+      householdRhythm: "quiet",
+      workFromHome: "some_days",
+      pets: "none",
+    },
+  });
+  expect(response.ok()).toBeTruthy();
+  expect(await response.json()).toMatchObject({
+    result: {
+      source: "rules",
+      decision: "hold",
+      eligibleCandidateCount: 0,
+    },
+    candidate: null,
+  });
+});
+
 test("protected pages redirect to authentication", async ({ page }) => {
   await page.goto("/portal/settings");
   await expect(page).toHaveURL(/\/login$/);
