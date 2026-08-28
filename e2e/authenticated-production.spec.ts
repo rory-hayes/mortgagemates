@@ -1,6 +1,7 @@
 import { createBrowserClient } from "@supabase/ssr";
 import { createClient } from "@supabase/supabase-js";
 import { expect, test } from "@playwright/test";
+import { randomUUID } from "node:crypto";
 
 const baseUrl = process.env.PLAYWRIGHT_BASE_URL;
 const supabaseUrl = process.env.E2E_SUPABASE_URL;
@@ -12,6 +13,7 @@ const enabled = Boolean(baseUrl && supabaseUrl && publishableKey && adminKey && 
 const controlledDocumentIds = new Set<string>();
 const controlledShareIds = new Set<string>();
 let controlledUserId = "";
+const controlledPassword = `MortgageMates-${randomUUID()}-aA1!`;
 
 test.describe("controlled authenticated buyer journey", () => {
   test.skip(!enabled, "Controlled Supabase E2E credentials are required.");
@@ -21,15 +23,28 @@ test.describe("controlled authenticated buyer journey", () => {
     const admin = createClient(supabaseUrl!, adminKey!, {
       auth: { autoRefreshToken: false, persistSession: false },
     });
-    const { data: link, error: linkError } = await admin.auth.admin.generateLink({
-      type: "magiclink",
-      email: buyerEmail!,
-      options: { redirectTo: `${baseUrl}/auth/callback` },
-    });
-    if (linkError || !link.properties.hashed_token || !link.user) {
-      throw linkError ?? new Error("Controlled buyer session could not be created.");
+    const { data: users, error: usersError } = await admin.auth.admin.listUsers({ perPage: 1000 });
+    if (usersError) throw usersError;
+    let controlledUser = users.users.find((user) => user.email?.toLowerCase() === buyerEmail!.toLowerCase());
+    if (!controlledUser) {
+      const { data: created, error: createError } = await admin.auth.admin.createUser({
+        email: buyerEmail!,
+        password: controlledPassword,
+        email_confirm: true,
+        user_metadata: { first_name: "Investor" },
+      });
+      if (createError || !created.user) {
+        throw createError ?? new Error("Controlled buyer account could not be created.");
+      }
+      controlledUser = created.user;
+    } else {
+      const { error: updateError } = await admin.auth.admin.updateUserById(controlledUser.id, {
+        password: controlledPassword,
+        email_confirm: true,
+      });
+      if (updateError) throw updateError;
     }
-    controlledUserId = link.user.id;
+    controlledUserId = controlledUser.id;
 
     let jar: Array<{
       name: string;
@@ -47,9 +62,9 @@ test.describe("controlled authenticated buyer journey", () => {
         },
       },
     });
-    const { error } = await client.auth.verifyOtp({
-      token_hash: link.properties.hashed_token,
-      type: "magiclink",
+    const { error } = await client.auth.signInWithPassword({
+      email: buyerEmail!,
+      password: controlledPassword,
     });
     if (error) throw error;
 

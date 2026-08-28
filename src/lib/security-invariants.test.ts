@@ -25,6 +25,8 @@ const gateComponent = readFileSync(new URL("../components/portal/introduction-ga
 const adminWorkspace = readFileSync(new URL("../components/admin/match-workspace.tsx", import.meta.url), "utf8");
 const playwrightConfig = readFileSync(new URL("../../playwright.config.ts", import.meta.url), "utf8");
 const publicE2e = readFileSync(new URL("../../e2e/public-production.spec.ts", import.meta.url), "utf8");
+const loginForm = readFileSync(new URL("../components/auth/login-form.tsx", import.meta.url), "utf8");
+const authConfig = readFileSync(new URL("../../supabase/config.toml", import.meta.url), "utf8");
 
 describe("production security invariants", () => {
   it("requires current consent and readiness throughout the match lifecycle", () => {
@@ -126,5 +128,16 @@ describe("production security invariants", () => {
     expect(playwrightConfig).toContain("normalizePublicSiteOrigin(new URL(accessUrl).origin)");
     expect(publicE2e).toContain("new URL(response.url()).origin");
     expect(publicE2e).toContain("toBe(expectedOrigin)");
+  });
+
+  it("uses password authentication without a passwordless sign-in path", () => {
+    expect(loginForm).toContain("signInWithPassword");
+    expect(loginForm).toContain("auth.signUp");
+    expect(loginForm).not.toContain("signInWithOtp");
+    expect(loginForm).not.toMatch(/magic.?link/i);
+    expect(authConfig).toContain("minimum_password_length = 12");
+    expect(authConfig).toContain('password_requirements = "lower_upper_letters_digits_symbols"');
+    expect(authConfig).toContain("secure_password_change = true");
+    expect(authConfig).toContain("enable_confirmations = true");
   });
 });
