@@ -5,7 +5,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 
-const links = [["How it works", "/#how-it-works"], ["Document ready", "/#documents"], ["Safety", "/#safety"], ["For professionals", "/#professionals"]] as const;
+const links = [["How it works", "/#how-it-works"], ["AI matching trial", "/investor-trial"], ["Document ready", "/#documents"], ["Safety", "/#safety"]] as const;
 
 export function SiteHeader() {
   return (

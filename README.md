@@ -8,18 +8,20 @@ Ireland-first co-buyer matching and preparation MVP for two unrelated owner-occu
 - A clearly labelled sample portal covering matching, document readiness, alignment, and admin operations
 - Supabase email authentication and protected member routes
 - Six-step matching profile using financial ranges rather than exact figures
-- One active, admin-reviewed introduction per member with double opt-in
+- Deterministic eligibility gates followed by bounded AI ranking through the shared Pursuit AI Gateway
+- One active AI proposal per member, a minimum score of 70, and double opt-in
+- A no-sign-up investor trial using six clearly labelled fictional candidate profiles
 - Private Supabase Storage document vault with a readiness checklist, review states, expiry fields, pair-level status, and consent records for professional handoff
 - Post-mutual-interest card-only Stripe Checkout (€49), with Link disabled, plus Stripe Identity route/webhook adapters
 - Alignment workbook with private-first answers and explicit sharing
-- Admin queues for profile and document review, matching, safety reports, and professional handoffs
+- Admin queues for profile and document review, safety reports, and professional handoffs; administrators cannot select buyer pairs
 - Explicit versioned terms, privacy, and risk consent before profile submission
 - Idempotent Stripe sessions with an atomic, retryable webhook event ledger
 - An explicit server-only mock gate mode for protected MVP testing; the portal labels it clearly and records separate mock audit events
 
 ## Evidence boundaries
 
-The sample portal uses fictional data. A green build proves the code compiles; it does not prove a payment, identity check, broker handoff, solicitor engagement, mortgage approval, or real customer demand. Stripe routes require valid environment-specific credentials and a matching signed webhook destination. Setting the server-only `MORTGAGEMATES_INTRODUCTION_GATE_MODE=mock` exercises the unlock flow without Stripe; it never means that an identity was verified or a payment was collected.
+The sample portal and investor matching pool use fictional data. A successful live trial response proves that the rules-plus-model flow returned a bounded result through the Pursuit gateway; it does not prove real member supply, a payment, identity check, broker handoff, solicitor engagement, mortgage approval, completed introduction, or customer demand. Stripe routes require valid environment-specific credentials and a matching signed webhook destination. Setting the server-only `MORTGAGEMATES_INTRODUCTION_GATE_MODE=mock` exercises the unlock flow without Stripe; it never means that an identity was verified or a payment was collected.
 
 ## Hosted verification only
 
@@ -39,11 +41,11 @@ pnpm test:e2e
 
 ## Environment variables
 
-See `.env.example`. Browser-safe Supabase values use `NEXT_PUBLIC_`; the Supabase secret and all Stripe secrets are server-only.
+See `.env.example`. Browser-safe Supabase values use `NEXT_PUBLIC_`; the Supabase secret, Stripe secrets, and MortgageMates gateway HMAC secret are server-only. The browser calls MortgageMates, which signs a five-minute, nonce-protected request to `https://pursuit-ai-gateway.vercel.app`.
 
 ## Supabase
 
-The linked project is `MortgageMates` (`idbsdqiukcjmpugsqkfw`). The schema is additive: the original MVP migration is followed by production-readiness, function-permission, and review-workflow lockdown migrations.
+The linked project is `MortgageMates` (`idbsdqiukcjmpugsqkfw`). The schema is additive: the original MVP migration is followed by production-readiness, function-permission, review-workflow lockdown, and automated AI matching migrations.
 
 The `buyer-documents` bucket is private. Object paths begin with the authenticated user ID, and another buyer never receives a storage policy permitting access. Pair readiness is returned through a restricted database function that exposes counts and status only.
 

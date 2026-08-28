@@ -15,7 +15,7 @@ export default async function PortalPage() {
     supabase.from("profiles").select("id, first_name, onboarding_status, onboarding_review_note, onboarding_step, matching_status").eq("id", user.id).single(),
     supabase.from("document_requirements").select("id").eq("required", true).eq("active", true),
     supabase.from("buyer_documents").select("id, status, requirement_id, expiry_date, created_at").eq("user_id", user.id).order("created_at", { ascending: false }),
-    supabase.from("matches").select("id, status, compatibility, user_a, user_b, expires_at").in("status", ["proposed", "mutual_interest", "unlocked"]).order("proposed_at", { ascending: false }).limit(1),
+    supabase.from("matches").select("id, status, compatibility, user_a, user_b, expires_at, source, overall_score").in("status", ["proposed", "mutual_interest", "unlocked"]).order("proposed_at", { ascending: false }).limit(1),
   ]);
   if (!profile) redirect("/login");
   const match = matches?.[0] ?? null;
@@ -28,5 +28,5 @@ export default async function PortalPage() {
   const side = match?.user_a === user.id ? "a" : "b";
   const gates = introduction ? { identity: side === "a" ? introduction.identity_a_status : introduction.identity_b_status, payment: side === "a" ? introduction.payment_a_status : introduction.payment_b_status } : null;
   const contact = Array.isArray(unlockedContact) ? unlockedContact[0] ?? null : null;
-  return <MemberDashboard profile={profile} documentStats={readiness} match={match as { id: string; status: string; compatibility: Record<string, unknown>; user_a: string; user_b: string; expires_at: string } | null} decision={existingDecision?.decision ?? null} gates={gates} gateMode={introductionGateMode()} contact={contact} />;
+  return <MemberDashboard profile={profile} documentStats={readiness} match={match as { id: string; status: string; compatibility: Record<string, unknown>; user_a: string; user_b: string; expires_at: string; source: string; overall_score: number | null } | null} decision={existingDecision?.decision ?? null} gates={gates} gateMode={introductionGateMode()} contact={contact} />;
 }
