@@ -76,9 +76,9 @@ type TrialResponse = {
 const defaultProfile: TrialProfileInput = {
   targetLocation: "Dún Laoghaire",
   propertyType: "House",
-  depositRange: "€35,000–€49,999",
-  borrowingRange: "€220,000–€259,999",
-  monthlyRange: "€1,200–€1,399",
+  depositRange: "€50,000–€74,999",
+  borrowingRange: "€260,000–€319,999",
+  monthlyRange: "€1,400–€1,699",
   purchaseTimeline: "6–12 months",
   ownershipHorizon: "5–7 years",
   householdRhythm: "balanced",
