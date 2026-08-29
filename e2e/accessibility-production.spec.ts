@@ -6,6 +6,10 @@ const publicRoutes = [
   "/",
   "/eligibility",
   "/preview",
+  "/preview?view=documents",
+  "/preview?view=alignment",
+  "/preview?view=admin",
+  "/investor-trial",
   "/login",
   "/terms",
   "/privacy",
@@ -26,6 +30,19 @@ for (const route of publicRoutes) {
     expect(results.violations, JSON.stringify(results.violations, null, 2)).toEqual([]);
   });
 }
+
+test("investor trial result has no automated WCAG A or AA violations", async ({ page }) => {
+  test.setTimeout(90_000);
+  await page.goto("/investor-trial", { waitUntil: "networkidle" });
+  await page.getByRole("button", { name: "Run live AI match" }).click();
+  await expect(
+    page.getByText(/Live result via Pursuit AI Gateway|Hard-gate result/),
+  ).toBeVisible({ timeout: 60_000 });
+  const results = await new AxeBuilder({ page })
+    .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
+    .analyze();
+  expect(results.violations, JSON.stringify(results.violations, null, 2)).toEqual([]);
+});
 
 test("public navigation is keyboard reachable and visibly focused", async ({ page }) => {
   await page.goto("/", { waitUntil: "networkidle" });

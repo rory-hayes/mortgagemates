@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import {
   AlertCircleIcon,
   ArrowRightIcon,
@@ -196,7 +196,7 @@ export function InvestorTrialMatcher() {
           </FieldGroup>
         </CardContent>
         <CardFooter className="border-t bg-muted/25">
-          <Button className="w-full" size="lg" disabled={pending} onClick={runMatch}>
+          <Button className="w-full" variant="secondary" size="lg" disabled={pending} onClick={runMatch}>
             {pending ? <Spinner data-icon="inline-start" /> : <SparklesIcon data-icon="inline-start" />}
             {pending ? "Ranking eligible profiles…" : "Run live AI match"}
             {!pending ? <ArrowRightIcon data-icon="inline-end" /> : null}
@@ -234,14 +234,15 @@ function TrialSelect<T extends string>({
   onChange: (value: T) => void;
   className?: string;
 }) {
+  const labelId = useId();
   const items = options.map((option) =>
     typeof option === "string" ? { value: option, label: option } : option,
   );
   return (
     <Field className={className}>
-      <FieldLabel>{label}</FieldLabel>
+      <FieldLabel id={labelId}>{label}</FieldLabel>
       <Select items={items} value={value} onValueChange={(next) => onChange(String(next) as T)}>
-        <SelectTrigger className="h-10 w-full">
+        <SelectTrigger aria-labelledby={labelId} className="h-10 w-full">
           <SelectValue>{items.find((item) => item.value === value)?.label}</SelectValue>
         </SelectTrigger>
         <SelectContent>
@@ -278,7 +279,7 @@ function MatchingLogic() {
           <div key={stage.title} className="rounded-xl border border-primary-foreground/16 bg-primary-foreground/6 p-4">
             <div className="mb-4 flex items-center justify-between">
               <stage.icon className="size-5 text-secondary" />
-              <span className="font-heading text-2xl text-primary-foreground/35">0{index + 1}</span>
+              <span className="font-heading text-2xl text-primary-foreground/70">0{index + 1}</span>
             </div>
             <p className="text-sm font-semibold">{stage.title}</p>
             <p className="mt-2 text-xs leading-5 text-primary-foreground/68">{stage.copy}</p>

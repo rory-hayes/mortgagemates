@@ -30,6 +30,27 @@ test("sample portal tabs stay addressable", async ({ page }) => {
   await expect(page.getByRole("heading", { level: 1, name: /Be ready before you match/i })).toBeVisible();
   await page.getByRole("tab", { name: "Alignment" }).click();
   await expect(page).toHaveURL(/\/preview\?view=alignment$/);
+  await page.getByRole("tab", { name: "Admin" }).click();
+  await expect(page).toHaveURL(/\/preview\?view=admin$/);
+  await expect(page.getByRole("heading", { level: 1, name: "Matching run monitor" })).toBeVisible();
+  await expect(page.getByText(/administrators monitor safety/i)).toBeVisible();
+  await expect(page.getByText("Recent automated runs")).toBeVisible();
+  await expect(page.getByText("Pair review", { exact: true })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Create proposal", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Propose", exact: true })).toHaveCount(0);
+});
+
+test("mobile sample documents expose every status and action without horizontal page overflow", async ({ page }, testInfo) => {
+  test.skip(!testInfo.project.name.startsWith("mobile"), "Mobile layout regression");
+  await page.goto("/preview?view=documents", { waitUntil: "networkidle" });
+  await expect(page.getByRole("button", { name: "Upload Salary certificate" })).toBeInViewport();
+  await expect(page.getByText("Under review", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: /^(Upload|Download|No action) / })).toHaveCount(9);
+  const pageWidth = await page.evaluate(() => ({
+    clientWidth: document.documentElement.clientWidth,
+    scrollWidth: document.documentElement.scrollWidth,
+  }));
+  expect(pageWidth.scrollWidth).toBeLessThanOrEqual(pageWidth.clientWidth);
 });
 
 test("investor trial is public and its hard-gate hold is live", async ({ page, request }) => {

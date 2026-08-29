@@ -27,6 +27,10 @@ const playwrightConfig = readFileSync(new URL("../../playwright.config.ts", impo
 const publicE2e = readFileSync(new URL("../../e2e/public-production.spec.ts", import.meta.url), "utf8");
 const loginForm = readFileSync(new URL("../components/auth/login-form.tsx", import.meta.url), "utf8");
 const authConfig = readFileSync(new URL("../../supabase/config.toml", import.meta.url), "utf8");
+const productPreview = readFileSync(
+  new URL("../components/preview/product-preview.tsx", import.meta.url),
+  "utf8",
+);
 
 describe("production security invariants", () => {
   it("requires current consent and readiness throughout the match lifecycle", () => {
@@ -139,5 +143,14 @@ describe("production security invariants", () => {
     expect(authConfig).toContain('password_requirements = "lower_upper_letters_digits_symbols"');
     expect(authConfig).toContain("secure_password_change = true");
     expect(authConfig).toContain("enable_confirmations = true");
+  });
+
+  it("keeps the investor-facing Admin sample automated and audit-led", () => {
+    expect(productPreview).toContain("AI matching operations");
+    expect(productPreview).toContain("Recent automated runs");
+    expect(productPreview).toContain("Administrators monitor safety, readiness, and the audit trail");
+    expect(productPreview).not.toContain("Create proposal");
+    expect(productPreview).not.toContain("Pair review");
+    expect(productPreview).not.toContain(">Propose<");
   });
 });
