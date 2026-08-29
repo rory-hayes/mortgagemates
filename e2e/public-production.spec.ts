@@ -52,7 +52,9 @@ test("mobile sample documents expose every status and action without horizontal 
   expect(actionBox).not.toBeNull();
   expect(actionBox!.x).toBeGreaterThanOrEqual(0);
   expect(actionBox!.x + actionBox!.width).toBeLessThanOrEqual(viewport.width);
-  await expect(page.getByText("Under review", { exact: true })).toBeVisible();
+  await expect(
+    page.getByRole("article").filter({ hasText: "Current-account statements" }).getByText("Under review", { exact: true }),
+  ).toBeVisible();
   await expect(page.getByRole("button", { name: /^(Upload|Download|No action) / })).toHaveCount(9);
   const pageWidth = await page.evaluate(() => ({
     clientWidth: document.documentElement.clientWidth,
