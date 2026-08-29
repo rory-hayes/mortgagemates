@@ -43,7 +43,15 @@ test("sample portal tabs stay addressable", async ({ page }) => {
 test("mobile sample documents expose every status and action without horizontal page overflow", async ({ page }, testInfo) => {
   test.skip(!testInfo.project.name.startsWith("mobile"), "Mobile layout regression");
   await page.goto("/preview?view=documents", { waitUntil: "networkidle" });
-  await expect(page.getByRole("button", { name: "Upload Salary certificate" })).toBeInViewport();
+  const uploadAction = page.getByRole("button", { name: "Upload Salary certificate" });
+  await expect(uploadAction).toBeVisible();
+  const [actionBox, viewport] = await Promise.all([
+    uploadAction.boundingBox(),
+    page.evaluate(() => ({ width: document.documentElement.clientWidth })),
+  ]);
+  expect(actionBox).not.toBeNull();
+  expect(actionBox!.x).toBeGreaterThanOrEqual(0);
+  expect(actionBox!.x + actionBox!.width).toBeLessThanOrEqual(viewport.width);
   await expect(page.getByText("Under review", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: /^(Upload|Download|No action) / })).toHaveCount(9);
   const pageWidth = await page.evaluate(() => ({
