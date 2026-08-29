@@ -160,7 +160,6 @@ export async function POST() {
     const compatibility = compatibilitySummary(
       requesterProfile,
       selected.profile,
-      selected.member,
       result,
     );
     const { data: matchID, error: matchError } = await admin.rpc(
@@ -223,11 +222,9 @@ function opaqueCandidateID(userID: string, secret: string) {
 function compatibilitySummary(
   requester: MatchingProfile,
   candidate: MatchingProfile,
-  selected: DatabaseMember,
   result: Awaited<ReturnType<typeof requestMortgageMatesMatch>>,
 ) {
   return {
-    potential_cobuyer: [selected.first_name ?? "Member", selected.age_band].filter(Boolean).join(", "),
     shared_search_area: requester.targetLocations.filter((item) => candidate.targetLocations.includes(item)),
     personal_capacity_ranges: [requester.borrowing.label, candidate.borrowing.label],
     purchase_timing: requester.purchaseTimeline,

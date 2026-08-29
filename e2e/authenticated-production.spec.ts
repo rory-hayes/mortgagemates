@@ -13,22 +13,32 @@ const enabled = Boolean(baseUrl && supabaseUrl && publishableKey && adminKey && 
 const controlledDocumentIds = new Set<string>();
 const controlledShareIds = new Set<string>();
 let controlledUserId = "";
+let controlledBuyerEmail = "";
+let controlledAdminUserId = "";
 const controlledPassword = `MortgageMates-${randomUUID()}-aA1!`;
 
 test.describe("controlled authenticated buyer journey", () => {
   test.skip(!enabled, "Controlled Supabase E2E credentials are required.");
   test.describe.configure({ mode: "serial" });
 
-  test.beforeEach(async ({ context }) => {
+  test.beforeEach(async ({ context }, testInfo) => {
+    const atIndex = buyerEmail!.lastIndexOf("@");
+    const localPart = buyerEmail!.slice(0, atIndex);
+    const domain = buyerEmail!.slice(atIndex + 1);
+    const projectSuffix = testInfo.project.name.toLowerCase().replaceAll(/[^a-z0-9]+/g, "-");
+    controlledBuyerEmail = `${localPart}+${projectSuffix}@${domain}`;
+
     const admin = createClient(supabaseUrl!, adminKey!, {
       auth: { autoRefreshToken: false, persistSession: false },
     });
     const { data: users, error: usersError } = await admin.auth.admin.listUsers({ perPage: 1000 });
     if (usersError) throw usersError;
-    let controlledUser = users.users.find((user) => user.email?.toLowerCase() === buyerEmail!.toLowerCase());
+    let controlledUser = users.users.find(
+      (user) => user.email?.toLowerCase() === controlledBuyerEmail.toLowerCase(),
+    );
     if (!controlledUser) {
       const { data: created, error: createError } = await admin.auth.admin.createUser({
-        email: buyerEmail!,
+        email: controlledBuyerEmail,
         password: controlledPassword,
         email_confirm: true,
         user_metadata: { first_name: "Investor" },
@@ -63,7 +73,7 @@ test.describe("controlled authenticated buyer journey", () => {
       },
     });
     const { error } = await client.auth.signInWithPassword({
-      email: buyerEmail!,
+      email: controlledBuyerEmail,
       password: controlledPassword,
     });
     if (error) throw error;
@@ -111,6 +121,9 @@ test.describe("controlled authenticated buyer journey", () => {
       await admin.from("audit_events").delete().eq("subject_type", "buyer_document").in("subject_id", ids);
       await admin.from("buyer_documents").delete().eq("user_id", controlledUserId).in("id", ids);
     }
+    if (controlledAdminUserId) {
+      await admin.auth.admin.deleteUser(controlledAdminUserId);
+    }
   });
 
   test("authenticated routes render without browser or request failures", async ({ page }) => {
@@ -132,7 +145,7 @@ test.describe("controlled authenticated buyer journey", () => {
       ["/portal", "Member dashboard"],
       ["/portal/onboarding", "Profile progress"],
       ["/portal/documents", "Private document vault"],
-      ["/portal/alignment", "Alignment workbook"],
+      ["/portal/alignment", /Alignment workbook|The workbook opens after mutual interest/],
       ["/portal/settings", "Member settings"],
     ] as const;
     for (const [route, marker] of routes) {
@@ -143,14 +156,17 @@ test.describe("controlled authenticated buyer journey", () => {
     expect(errors, errors.join("\n")).toEqual([]);
   });
 
-  test("optional document upload/removal and professional handoff consent round-trip", async ({ page }, testInfo) => {
+  test("document controls and readiness-gated professional handoff round-trip", async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== "desktop-chromium", "Mutation coverage runs once on desktop.");
+    test.setTimeout(60_000);
     await page.goto("/portal/documents", { waitUntil: "networkidle" });
+    const handoffButton = page.getByRole("button", { name: "Prepare professional handoff" });
+    await expect(handoffButton, "Handoff must remain blocked until every required document is accepted.").toBeDisabled();
 
     const uploadRow = page.locator("div.grid.items-center.rounded-xl").filter({
       has: page.getByRole("button", { name: "Upload", exact: true }),
     }).first();
-    await expect(uploadRow, "A controlled buyer must have a missing optional document slot.").toBeVisible();
+    await expect(uploadRow, "A controlled buyer must have a missing document slot.").toBeVisible();
     const requirementLabel = (await uploadRow.locator("p.font-semibold").first().innerText()).trim();
     const requirementRow = page.locator("div.grid.items-center.rounded-xl").filter({ hasText: requirementLabel });
     const filename = `mortgagemates-e2e-${Date.now()}.pdf`;
@@ -178,8 +194,100 @@ test.describe("controlled authenticated buyer journey", () => {
     await expect(page.getByText("Document removed.", { exact: true })).toBeVisible();
     await expect(requirementRow.getByRole("button", { name: "Upload", exact: true })).toBeVisible();
 
+    const { data: requiredRequirements, error: requirementsError } = await admin
+      .from("document_requirements")
+      .select("id")
+      .eq("active", true)
+      .eq("required", true)
+      .order("sort_order");
+    if (requirementsError || !requiredRequirements?.length) {
+      throw requirementsError ?? new Error("No required document checklist was available.");
+    }
+    const controlledAdminEmail = controlledBuyerEmail.replace("@", "+admin@");
+    const { data: authUsers, error: authUsersError } = await admin.auth.admin.listUsers({ perPage: 1000 });
+    if (authUsersError) throw authUsersError;
+    let controlledAdminUser = authUsers.users.find(
+      (user) => user.email?.toLowerCase() === controlledAdminEmail.toLowerCase(),
+    );
+    if (!controlledAdminUser) {
+      const { data: createdAdmin, error: createAdminError } = await admin.auth.admin.createUser({
+        email: controlledAdminEmail,
+        password: controlledPassword,
+        email_confirm: true,
+        user_metadata: { first_name: "E2E Reviewer" },
+      });
+      if (createAdminError || !createdAdmin.user) {
+        throw createAdminError ?? new Error("Controlled admin reviewer could not be created.");
+      }
+      controlledAdminUser = createdAdmin.user;
+    } else {
+      const { error: updateAdminError } = await admin.auth.admin.updateUserById(controlledAdminUser.id, {
+        password: controlledPassword,
+        email_confirm: true,
+      });
+      if (updateAdminError) throw updateAdminError;
+    }
+    controlledAdminUserId = controlledAdminUser.id;
+    const { error: promoteError } = await admin
+      .from("profiles")
+      .update({ role: "admin", first_name: "E2E Reviewer" })
+      .eq("id", controlledAdminUserId);
+    if (promoteError) throw promoteError;
+    const reviewerClient = createClient(supabaseUrl!, publishableKey!, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    });
+    const { error: reviewerSignInError } = await reviewerClient.auth.signInWithPassword({
+      email: controlledAdminEmail,
+      password: controlledPassword,
+    });
+    if (reviewerSignInError) throw reviewerSignInError;
+
+    const acceptedPdf = Buffer.from("%PDF-1.4\n1 0 obj<</Type/Catalog>>endobj\n%%EOF\n");
+    const acceptedAt = Date.now();
+    for (const requirement of requiredRequirements) {
+      const acceptedFilename = `mortgagemates-e2e-${requirement.id}-${acceptedAt}.pdf`;
+      const storagePath = `${controlledUserId}/${requirement.id}/${randomUUID()}-${acceptedFilename}`;
+      const { error: storageError } = await admin.storage
+        .from("buyer-documents")
+        .upload(storagePath, acceptedPdf, { contentType: "application/pdf", upsert: false });
+      if (storageError) throw storageError;
+      const { data: acceptedDocument, error: acceptedError } = await admin
+        .from("buyer_documents")
+        .insert({
+          user_id: controlledUserId,
+          requirement_id: requirement.id,
+          storage_path: storagePath,
+          original_filename: acceptedFilename,
+          mime_type: "application/pdf",
+          size_bytes: acceptedPdf.length,
+        })
+        .select("id")
+        .single();
+      if (acceptedError || !acceptedDocument) {
+        await admin.storage.from("buyer-documents").remove([storagePath]);
+        throw acceptedError ?? new Error("A controlled accepted document could not be created.");
+      }
+      controlledDocumentIds.add(acceptedDocument.id);
+      const { error: underReviewError } = await reviewerClient.rpc("admin_review_document", {
+        p_document_id: acceptedDocument.id,
+        p_status: "under_review",
+        p_note: "Controlled E2E review started",
+      });
+      if (underReviewError) throw underReviewError;
+      const { error: acceptReviewError } = await reviewerClient.rpc("admin_review_document", {
+        p_document_id: acceptedDocument.id,
+        p_status: "accepted",
+        p_note: "Controlled E2E review accepted",
+      });
+      if (acceptReviewError) throw acceptReviewError;
+    }
+
+    await page.reload({ waitUntil: "networkidle" });
+    await expect(page.getByText("100%", { exact: true })).toBeVisible();
+    await expect(handoffButton, "Handoff should unlock only after every required document is accepted.").toBeEnabled();
+
     const providerName = `MortgageMates E2E Broker ${Date.now()}`;
-    await page.getByRole("button", { name: "Prepare professional handoff" }).click();
+    await handoffButton.click();
     const dialog = page.getByRole("dialog", { name: "Consent to a professional handoff" });
     await dialog.getByLabel("Firm or professional name").fill(providerName);
     await dialog.getByRole("button", { name: "Record consent" }).click();

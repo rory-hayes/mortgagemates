@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { MemberDashboard } from "@/components/portal/member-dashboard";
 import { introductionGateMode } from "@/lib/introduction-gate-mode";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { calculateReadiness } from "@/lib/readiness";
 
@@ -19,14 +20,23 @@ export default async function PortalPage() {
   ]);
   if (!profile) redirect("/login");
   const match = matches?.[0] ?? null;
-  const [{ data: existingDecision }, { data: introduction }, { data: unlockedContact }] = match ? await Promise.all([
+  const counterpartId = match ? (match.user_a === user.id ? match.user_b : match.user_a) : null;
+  const [{ data: existingDecision }, { data: introduction }, { data: unlockedContact }, { data: counterpart }] = match ? await Promise.all([
     supabase.from("match_decisions").select("decision").eq("match_id", match.id).eq("user_id", user.id).maybeSingle(),
     supabase.from("introductions").select("status, identity_a_status, identity_b_status, payment_a_status, payment_b_status").eq("match_id", match.id).maybeSingle(),
     match.status === "unlocked" ? supabase.rpc("get_unlocked_contact", { p_match_id: match.id }) : Promise.resolve({ data: null }),
-  ]) : [{ data: null }, { data: null }, { data: null }];
+    createAdminClient().from("profiles").select("first_name, age_band").eq("id", counterpartId!).single(),
+  ]) : [{ data: null }, { data: null }, { data: null }, { data: null }];
   const readiness = calculateReadiness((requirements ?? []).map((item) => item.id), documents ?? []);
   const side = match?.user_a === user.id ? "a" : "b";
   const gates = introduction ? { identity: side === "a" ? introduction.identity_a_status : introduction.identity_b_status, payment: side === "a" ? introduction.payment_a_status : introduction.payment_b_status } : null;
   const contact = Array.isArray(unlockedContact) ? unlockedContact[0] ?? null : null;
-  return <MemberDashboard profile={profile} documentStats={readiness} match={match as { id: string; status: string; compatibility: Record<string, unknown>; user_a: string; user_b: string; expires_at: string; source: string; overall_score: number | null } | null} decision={existingDecision?.decision ?? null} gates={gates} gateMode={introductionGateMode()} contact={contact} />;
+  const viewerMatch = match ? {
+    ...match,
+    compatibility: {
+      ...Object.fromEntries(Object.entries(match.compatibility).filter(([key]) => key !== "potential_cobuyer")),
+      potential_cobuyer: [counterpart?.first_name ?? "Member", counterpart?.age_band].filter(Boolean).join(", "),
+    },
+  } : null;
+  return <MemberDashboard profile={profile} documentStats={readiness} match={viewerMatch as { id: string; status: string; compatibility: Record<string, unknown>; user_a: string; user_b: string; expires_at: string; source: string; overall_score: number | null } | null} decision={existingDecision?.decision ?? null} gates={gates} gateMode={introductionGateMode()} contact={contact} />;
 }

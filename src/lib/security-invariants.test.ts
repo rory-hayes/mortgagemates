@@ -31,6 +31,11 @@ const productPreview = readFileSync(
   new URL("../components/preview/product-preview.tsx", import.meta.url),
   "utf8",
 );
+const memberMatchingRoute = readFileSync(
+  new URL("../app/api/matching/run/route.ts", import.meta.url),
+  "utf8",
+);
+const portalPage = readFileSync(new URL("../app/portal/page.tsx", import.meta.url), "utf8");
 
 describe("production security invariants", () => {
   it("requires current consent and readiness throughout the match lifecycle", () => {
@@ -152,5 +157,12 @@ describe("production security invariants", () => {
     expect(productPreview).not.toContain("Create proposal");
     expect(productPreview).not.toContain("Pair review");
     expect(productPreview).not.toContain(">Propose<");
+  });
+
+  it("derives the proposal counterpart for each viewer after AI ranking", () => {
+    expect(memberMatchingRoute).not.toContain("potential_cobuyer");
+    expect(portalPage).toContain("match.user_a === user.id ? match.user_b : match.user_a");
+    expect(portalPage).toContain('key !== "potential_cobuyer"');
+    expect(portalPage).toContain("counterpart?.first_name");
   });
 });
